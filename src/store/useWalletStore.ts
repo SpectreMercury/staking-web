@@ -11,24 +11,34 @@ interface WalletState {
 }
 
 export const useWalletStore = create<WalletState>((set) => {
-  // 从 localStorage 加载初始状态
-  const initialAddress = localStorage.getItem('walletAddress') || '';
-  const initialBalance = localStorage.getItem('walletBalance') || '';
+  let initialAddress = '';
+  let initialBalance = '';
+
+  if (typeof window !== 'undefined') { // 确保在客户端环境中
+    initialAddress = localStorage.getItem('walletAddress') || '';
+    initialBalance = localStorage.getItem('walletBalance') || '';
+  }
 
   return {
     address: initialAddress,
     balance: initialBalance,
     setAddress: (address) => {
-      localStorage.setItem('walletAddress', address);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('walletAddress', address);
+      }
       set({ address });
     },
     setBalance: (balance) => {
-      localStorage.setItem('walletBalance', balance);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('walletBalance', balance);
+      }
       set({ balance });
     },
     disconnect: () => {
-      localStorage.removeItem('walletAddress');
-      localStorage.removeItem('walletBalance');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('walletAddress');
+        localStorage.removeItem('walletBalance');
+      }
       set({ address: '', balance: '' });
     },
   };

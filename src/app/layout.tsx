@@ -19,10 +19,12 @@ export default function RootLayout({
   const { setAddress, setBalance } = useWalletStore();
 
   useEffect(() => {
-    const storedAddress = localStorage.getItem('walletAddress');
-    const storedBalance = localStorage.getItem('walletBalance');
-    if (storedAddress) setAddress(storedAddress);
-    if (storedBalance) setBalance(storedBalance);
+    if (typeof window !== 'undefined') {
+      const storedAddress = localStorage.getItem('walletAddress');
+      const storedBalance = localStorage.getItem('walletBalance');
+      if (storedAddress) setAddress(storedAddress);
+      if (storedBalance) setBalance(storedBalance);
+    }
   }, [setAddress, setBalance]);
 
   return (
