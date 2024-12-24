@@ -1,7 +1,8 @@
 // src/types/global.d.ts
 interface Ethereum {
-  removeListener(arg0: string, arg1: () => void): unknown;
-  request: (args: { method: string }) => Promise<unknown>;
+  on: (event: string, handler: (args: unknown) => void) => void;
+  removeListener: (event: string, handler: (args: unknown) => void) => void;
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 }
 
 interface Window {

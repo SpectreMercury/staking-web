@@ -1,11 +1,11 @@
 // context/index.tsx
 'use client'
 
-import { wagmiAdapter, projectId } from '@/config'
+import { projectId } from '@/config'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React, { type ReactNode } from 'react'
-import { WagmiProvider, type Config } from 'wagmi'
-import { createAppKit } from '@reown/appkit/react'
+import { createConfig, WagmiProvider, http } from 'wagmi'
+import { getDefaultConfig, ConnectKitProvider } from 'connectkit';
 // Set up queryClient
 const queryClient = new QueryClient()
 
@@ -46,21 +46,40 @@ export const hashKeyChainMainnet = {
   explorer: 'https://explorer.hsk.xyz',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const modal = createAppKit({
-  adapters: [wagmiAdapter],
-  projectId,
-  networks: [hashKeyChainTestnet, hashKeyChainMainnet],
-  defaultNetwork: hashKeyChainTestnet,
-  features: {
-    analytics: true 
-  }
-})
+const config = createConfig(
+  getDefaultConfig({
+    // Your dApps chains
+    chains: [hashKeyChainMainnet, hashKeyChainTestnet],
+    transports: {
+      // RPC URL for each chain
+      [hashKeyChainMainnet.id]: http(
+        hashKeyChainMainnet.rpcUrls.default.http[0]
+      ),
+      [hashKeyChainTestnet.id]: http(
+        hashKeyChainTestnet.rpcUrls.default.http[0]
+      ),
+    },
+    // Required API Keys
+    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+
+    // Required App Info
+    appName: "HashKye Staking",
+
+    // Optional App Info
+    appDescription: "HashKey staking",
+  }),
+);
+
+
 
 function ContextProvider({ children }: { children: ReactNode }) {
   return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <ConnectKitProvider>
+          {children}
+        </ConnectKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   )
 }

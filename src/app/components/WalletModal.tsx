@@ -34,7 +34,6 @@ export default function WalletModal({
   const copyAddress = () => {
     if (address) {
       navigator.clipboard.writeText(address);
-      // 可以添加 toast 提示
     }
   };
 
@@ -111,29 +110,6 @@ export default function WalletModal({
               className="w-full"
               onClick={onConnectMetaMask}
             >
-              <svg
-                className="mr-2 h-4 w-4"
-                viewBox="0 0 35 33"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M32.9582 1L19.8241 10.7183L22.2665 4.99099L32.9582 1Z"
-                  fill="currentColor"
-                  stroke="currentColor"
-                  strokeWidth="0.25"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2.65668 1L15.6322 10.8511L13.3474 4.99099L2.65668 1Z"
-                  fill="currentColor"
-                  stroke="currentColor"
-                  strokeWidth="0.25"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
               Connect with MetaMask
             </Button>
           </div>
