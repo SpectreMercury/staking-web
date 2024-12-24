@@ -17,7 +17,6 @@ import {
 import { stakingABI, STAKING_CONTRACT_ADDRESS, Position } from '@/abi/stakeAbi';
 
 const DURATION_MAP = {
-  '1Min': BigInt(60),
   '1M': BigInt(2592000),
   '3M': BigInt(7889400),
   '6M': BigInt(15778800),
@@ -38,7 +37,7 @@ export default function StakePanel() {
   const [address, setAddress] = useState<string | null>(null);
   const [nativeBalance, setNativeBalance] = useState<bigint>(BigInt(0));
   const [inputValue, setInputValue] = useState<string>('');
-  const [lockPeriod, setLockPeriod] = useState<bigint>(DURATION_MAP['1Min']);
+  const [lockPeriod, setLockPeriod] = useState<bigint>(DURATION_MAP['1M']);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);

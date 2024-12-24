@@ -10,13 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Wallet, PiggyBank, Trophy } from "lucide-react";
+import { Wallet, Trophy } from "lucide-react";
 import { stakingABI, STAKING_CONTRACT_ADDRESS } from '@/abi/stakeAbi';
 
 export default function Dashboard() {
   const [tvl, setTvl] = useState<string>('0.00');
   const [totalStakes, setTotalStakes] = useState<number>(0);
-  const [totalRewards, setTotalRewards] = useState<string>('0.00');
+  // const [totalRewards, setTotalRewards] = useState<string>('0.00');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,8 +32,8 @@ export default function Dashboard() {
           const stakes = await contract.getUserPositions(signer.getAddress());
           setTotalStakes(stakes.length);
 
-          const rewards = stakes.reduce((acc: bigint, stake: { amount: bigint }) => acc + stake.amount, BigInt(0));
-          setTotalRewards(ethers.formatEther(rewards));
+          const totalStakesCount = stakes.length;
+          setTotalStakes(totalStakesCount);
         } catch (error) {
           console.error('Error fetching data:', error);
         }
@@ -66,14 +66,14 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Stakes
+              Total Staked HSK
             </CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+            <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStakes}</div>
+            <div className="text-2xl font-bold">{tvl}</div>
             <CardDescription className="text-xs text-muted-foreground mt-1">
-              Number of Stakes
+              Total HSK Staked in Contract
             </CardDescription>
           </CardContent>
         </Card>
@@ -82,14 +82,14 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Rewards
+              Total Stakes
             </CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalRewards}</div>
+            <div className="text-2xl font-bold">{totalStakes}</div>
             <CardDescription className="text-xs text-muted-foreground mt-1">
-              Accumulated Rewards
+              Number of Stakes
             </CardDescription>
           </CardContent>
         </Card>
