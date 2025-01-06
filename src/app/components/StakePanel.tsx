@@ -242,7 +242,18 @@ export default function StakePanel() {
     !inputValue || 
     isPending ||
     Number(inputValue) <= 0 ||
-    ethers.parseEther(inputValue) > nativeBalance;
+    ethers.parseEther(inputValue) > nativeBalance ||
+    (currentStaked + ethers.parseEther(inputValue)) > totalStaked;
+
+  const getErrorMessage = () => {
+    if (ethers.parseEther(inputValue || '0') > nativeBalance) {
+      return 'Insufficient balance';
+    }
+    if ((currentStaked + ethers.parseEther(inputValue || '0')) > totalStaked) {
+      return 'Exceeds staking pool capacity';
+    }
+    return null;
+  };
 
   const handleClaim = async (positionId: bigint) => {
     if (window.ethereum) {
@@ -346,9 +357,31 @@ export default function StakePanel() {
                       Available: {ethers.formatEther(nativeBalance)} HSK
                     </div>
                   </div>
+                  <div className="flex justify-between mb-2">
+                    {[25, 50, 75, 100].map((percent) => (
+                      <Button
+                        key={percent}
+                        onClick={() => {
+                          const maxAmount = Number(formatEther(nativeBalance));
+                          // 减去 gas 费用缓冲
+                          const gasBuffer = 0.01;
+                          const availableAmount = Math.max(0, maxAmount - gasBuffer);
+                          const amount = (availableAmount * percent) / 100;
+                          setInputValue(amount.toFixed(18).replace(/\.?0+$/, ''));
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        {percent}%
+                      </Button>
+                    ))}
+                  </div>
                   <div className="relative">
                     <Input
                       type="number"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
                       placeholder={`0.00 (MAX: ${formattedBalance})`}
                       className="pr-24"
                     />
@@ -361,19 +394,6 @@ export default function StakePanel() {
                       </button>
                       <span className="text-sm text-muted-foreground">HSK</span>
                     </div>
-                  </div>
-                  <div className="flex justify-between mt-2">
-                    {[25, 50, 75, 100].map((percent) => (
-                      <Button
-                        key={percent}
-                        onClick={() => setInputValue(((Number(formatEther(nativeBalance)) * percent) / 100).toString())}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        {percent}%
-                      </Button>
-                    ))}
                   </div>
                 </div>
 
@@ -396,8 +416,10 @@ export default function StakePanel() {
                   </div>
                 </div>
 
-                {error && (
-                  <div className="text-sm text-red-500">{error}</div>
+                {(error || getErrorMessage()) && (
+                  <div className="text-sm text-red-500">
+                    {error || getErrorMessage()}
+                  </div>
                 )}
 
                 <Button 
