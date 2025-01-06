@@ -38,8 +38,7 @@ export default function Dashboard() {
 
         if (window.ethereum) {
           const provider = new ethers.BrowserProvider(window.ethereum);
-          const signer = await provider.getSigner();
-          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
 
           const total = await contract.totalStaked();
           setTotalStaked(total);
@@ -97,7 +96,7 @@ export default function Dashboard() {
     <div className="container p-6">
       <div className="grid gap-4 md:grid-cols-3">
         {renderCard(
-          "Your TVL",
+          "Total Stake TVL",
           (parseFloat(ethers.formatEther(totalStaked)) * hskPrice).toFixed(2),
           "Total Value Locked",
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -109,7 +108,7 @@ export default function Dashboard() {
           <Wallet className="h-4 w-4 text-muted-foreground" />
         )}
         {renderCard(
-          "Total Stakes",
+          "Number of Stakes",
           totalStakes,
           "Number of Stakes",
           <Trophy className="h-4 w-4 text-muted-foreground" />

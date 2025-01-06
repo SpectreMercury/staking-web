@@ -67,8 +67,7 @@ export default function StakePanel() {
         setIsLoading(true);
         if (window.ethereum) {
           const provider = new ethers.BrowserProvider(window.ethereum);
-          const signer = await provider.getSigner();
-          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
           
           // 获取质押进度
           const stakingProgress = await contract.getStakingProgress();
@@ -100,8 +99,7 @@ export default function StakePanel() {
       }
       if (window.ethereum) {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
 
         // 获取用户的质押位置
         const userPositions = await contract.getUserPositions(address);
@@ -270,7 +268,7 @@ export default function StakePanel() {
         const tx = await contract.unstake(positionId);
         await tx.wait();
         // 领取后刷新质押状态
-        const userPositions = await contract.getUserPositions(await signer.getAddress());
+        const userPositions = await contract.getUserPositions(address);
         setPositions(userPositions);
       } catch (error) {
         console.error('Error claiming reward:', error);
