@@ -320,7 +320,7 @@ export default function StakePanel() {
                       return (
                         <div key={index} className="relative mb-4 p-4 border rounded-lg shadow-sm bg-white flex flex-col md:flex-row justify-between items-center">
                           <div className="mb-2 md:mb-0">
-                            <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} ETH</div>
+                            <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} HSK</div>
                             <div className="text-sm text-gray-600">Ends In: {new Date((Number(position.stakedAt) + Number(position.lockPeriod)) * 1000).toLocaleDateString()}</div>
                             <div className="text-sm text-gray-600">Earnings: {currentEarnings.toFixed(2)}%</div>
                           </div>

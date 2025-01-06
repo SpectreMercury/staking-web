@@ -103,7 +103,7 @@ export default function Dashboard() {
         )}
         {renderCard(
           "Total Staked HSK",
-          ethers.formatEther(totalStaked),
+          parseFloat(ethers.formatEther(totalStaked)).toFixed(2),
           "Total HSK Staked in Contract",
           <Wallet className="h-4 w-4 text-muted-foreground" />
         )}
