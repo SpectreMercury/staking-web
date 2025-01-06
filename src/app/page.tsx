@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 export default function Home() {
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
-
+  
   useEffect(() => {
     const fetchStakingProgress = async () => {
       if (window.ethereum) {
@@ -39,6 +39,7 @@ export default function Home() {
 
     fetchStakingProgress();
   }, []);
+  
 
   return (
     <div className="flex w-full">

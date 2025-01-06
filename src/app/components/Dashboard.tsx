@@ -13,15 +13,21 @@ import {
 import { Wallet, Trophy } from "lucide-react";
 import { stakingABI, STAKING_CONTRACT_ADDRESS } from '@/abi/stakeAbi';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAccount } from 'wagmi';
 
 export default function Dashboard() {
   const [totalStakes, setTotalStakes] = useState<number>(0);
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
   const [hskPrice, setHskPrice] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
+  const { address } = useAccount();
+
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!address) {
+        return;
+      }
       try {
         // 获取 HSK 价格
         const response = await fetch('/api/hsk-price');
@@ -34,13 +40,12 @@ export default function Dashboard() {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
           const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
-          const userAddress = await signer.getAddress();
 
           const total = await contract.totalStaked();
           setTotalStaked(total);
 
           // 使用 nextPositionId 获取总质押笔数
-          const userPositions = await contract.getUserPositions(userAddress);
+          const userPositions = await contract.getUserPositions(address);
           setTotalStakes(userPositions.length);
         }
       } catch (error) {
@@ -52,7 +57,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [address]);
 
   const renderCard = (title: string, value: string | number, description: string, icon: React.ReactNode) => {
     if (isLoading) {

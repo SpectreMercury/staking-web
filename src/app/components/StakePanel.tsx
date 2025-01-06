@@ -57,7 +57,11 @@ export default function StakePanel() {
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(true);
 
+
   useEffect(() => {
+    if (!address) {
+      return;
+    }
     const init = async () => {
       try {
         setIsLoading(true);
@@ -72,12 +76,11 @@ export default function StakePanel() {
           setCurrentStaked(stakingProgress.current);
 
           // 获取白名单状态
-          const userAddress = await signer.getAddress();
-          const whitelisted = await contract.whitelisted(userAddress);
+          const whitelisted = await contract.whitelisted(address);
           setIsWhitelisted(whitelisted);
 
           // 获取用户的原生余额
-          const userBalance = await provider.getBalance(userAddress);
+          const userBalance = await provider.getBalance(address);
           setNativeBalance(userBalance);
         }
       } catch (error) {
@@ -90,22 +93,24 @@ export default function StakePanel() {
     init();
   }, [address]);
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchPositions = async () => {
+      if (!address) {
+        return;
+      }
       if (window.ethereum) {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
-        const userAddress = await signer.getAddress();
 
         // 获取用户的质押位置
-        const userPositions = await contract.getUserPositions(userAddress);
+        const userPositions = await contract.getUserPositions(address);
         setPositions(userPositions);
       }
     };
 
     fetchPositions();
-  }, []);
+  }, [address]);
 
   if (isLoading) {
     return (

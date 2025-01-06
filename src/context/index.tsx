@@ -49,7 +49,7 @@ export const hashKeyChainMainnet = {
 const config = createConfig(
   getDefaultConfig({
     // Your dApps chains
-    chains: [hashKeyChainMainnet, hashKeyChainTestnet],
+    chains: [hashKeyChainTestnet],
     transports: {
       // RPC URL for each chain
       [hashKeyChainMainnet.id]: http(
