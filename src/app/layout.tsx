@@ -3,8 +3,6 @@
 // import type { Metadata } from "next";
 import "./globals.css";
 import ContextProvider from "@/context";
-import { useEffect } from 'react';
-import { useWalletStore } from '@/store/useWalletStore';
 
 // export const metadata: Metadata = {
 //   title: "HashKey Staking Protocol",
@@ -16,16 +14,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const { setAddress, setBalance } = useWalletStore();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedAddress = localStorage.getItem('walletAddress');
-      const storedBalance = localStorage.getItem('walletBalance');
-      if (storedAddress) setAddress(storedAddress);
-      if (storedBalance) setBalance(storedBalance);
-    }
-  }, [setAddress, setBalance]);
 
   return (
     <html lang="en">
