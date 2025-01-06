@@ -14,8 +14,32 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import StakePanel from "./components/StakePanel";
+import { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { STAKING_CONTRACT_ADDRESS, stakingABI } from '@/abi/stakeAbi';
+import { Progress } from "@/components/ui/progress";
 
 export default function Home() {
+  const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
+  const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
+
+  useEffect(() => {
+    const fetchStakingProgress = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+
+        const stakingProgress = await contract.getStakingProgress();
+        // console.log(stakingProgress);
+        setTotalStaked(stakingProgress.total);
+        setCurrentStaked(stakingProgress.current);
+      }
+    };
+
+    fetchStakingProgress();
+  }, []);
+
   return (
     <div className="flex w-full">
       <Sidebar />
@@ -31,6 +55,15 @@ export default function Home() {
                   Join us to earn rewards and support the future of decentralized networks.
                 </CardDescription>
               </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="text-sm font-medium">Staking Progress</div>
+                  <Progress className="my-4" value={Number(currentStaked) / Number(totalStaked) * 100} />
+                  <div className="text-xs text-muted-foreground">
+                    {ethers.formatEther(currentStaked)} / {ethers.formatEther(totalStaked)} HSK
+                  </div>
+                </div>
+              </CardContent>
             </Card>
 
             <Card>

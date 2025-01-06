@@ -15,18 +15,22 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { stakingABI, STAKING_CONTRACT_ADDRESS, Position } from '@/abi/stakeAbi';
+import { Progress } from "@/components/ui/progress";
+import { useAccount, useBalance } from 'wagmi'
+import { formatUnits } from 'viem'
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DURATION_MAP = {
-  '1M': BigInt(2592000),
-  '3M': BigInt(7889400),
+  // '1M': BigInt(2592000),
+  // '3M': BigInt(7889400),
   '6M': BigInt(15778800),
   '1Y': BigInt(31557600),
 } as const;
 
 const REWARD_RATES = {
-  60: 10,
-  2592000: 100,
-  7889400: 320,
+  // 60: 10,
+  // 2592000: 100,
+  // 7889400: 320,
   15778800: 660,
   31557600: 1420,
 };
@@ -34,40 +38,59 @@ const REWARD_RATES = {
 // const WHITELIST_BONUS = 1.05;
 
 export default function StakePanel() {
-  const [address, setAddress] = useState<string | null>(null);
+  const { address } = useAccount()
+  const { data: balance } = useBalance({
+    address,
+  })
+
+  const formattedBalance = balance ? formatUnits(balance.value, balance.decimals) : '0'
+
   const [nativeBalance, setNativeBalance] = useState<bigint>(BigInt(0));
   const [inputValue, setInputValue] = useState<string>('');
-  const [lockPeriod, setLockPeriod] = useState<bigint>(DURATION_MAP['1M']);
+  const [lockPeriod, setLockPeriod] = useState<bigint>(DURATION_MAP['6M']);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isWhitelisted, setIsWhitelisted] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
+  const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      if (window.ethereum) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
-        setAddress(userAddress);
+      try {
+        setIsLoading(true);
+        if (window.ethereum) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+          
+          // 获取质押进度
+          const stakingProgress = await contract.getStakingProgress();
+          setTotalStaked(stakingProgress.total);
+          setCurrentStaked(stakingProgress.current);
 
-        const balance = await provider.getBalance(userAddress);
-        setNativeBalance(balance);
+          // 获取白名单状态
+          const userAddress = await signer.getAddress();
+          const whitelisted = await contract.whitelisted(userAddress);
+          setIsWhitelisted(whitelisted);
 
-        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
-        const userPositions = await contract.getUserPositions(userAddress);
-        setPositions(userPositions);
-
-        const whitelisted = await contract.whitelisted(userAddress);
-        setIsWhitelisted(whitelisted);
+          // 获取用户的原生余额
+          const userBalance = await provider.getBalance(userAddress);
+          setNativeBalance(userBalance);
+        }
+      } catch (error) {
+        console.error("Error initializing:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    init();
-  }, []);
 
-  useEffect(() => {
+    init();
+  }, [address]);
+
+    useEffect(() => {
     const fetchPositions = async () => {
       if (window.ethereum) {
         const provider = new ethers.BrowserProvider(window.ethereum);
@@ -84,13 +107,87 @@ export default function StakePanel() {
     fetchPositions();
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="container p-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3 mb-4" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <div className="flex space-x-4">
+                <Skeleton className="h-10 w-1/4" />
+                <Skeleton className="h-10 w-1/4" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // 检查是否质押已满
+  const isStakingFull = currentStaked >= totalStaked;
+
+  // 如果不在白名单或质押已满,显示相应提示
+  if (!isWhitelisted) {
+    return (
+      <div className="container p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-xl font-semibold text-red-500 mb-2">
+                Not Eligible
+              </div>
+              <p className="text-gray-500 text-center">
+                You are not eligible to participate in staking. Please contact support for more information.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isStakingFull) {
+    return (
+      <div className="container p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-xl font-semibold text-yellow-500 mb-2">
+                Staking Pool is Full
+              </div>
+              <p className="text-gray-500 text-center">
+                The staking pool has reached its maximum capacity. Please try again later.
+              </p>
+              <div className="mt-4">
+                <Progress 
+                  value={100} 
+                  className="w-64"
+                />
+                <div className="text-sm text-center mt-2 text-gray-500">
+                  {ethers.formatEther(currentStaked)} / {ethers.formatEther(totalStaked)} HSK
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const calculateCurrentEarnings = (amount: bigint, lockPeriod: bigint, stakedAt: bigint): number => {
     const rewardRate = REWARD_RATES[lockPeriod.toString() as unknown as keyof typeof REWARD_RATES] || 0;
     const apy = (Number(rewardRate) / 1000) * 100;
     const stakedAtSeconds = Number(stakedAt);
     const currentTime = Date.now() / 1000;
     const daysStaked = (currentTime - stakedAtSeconds) / 86400;
-    console.log('daysStaked: ', daysStaked);
+    // console.log('daysStaked: ', daysStaked);
     const dailyRate = apy / 365;
     const earningsPercentage = dailyRate * daysStaked;
     // console.log(earningsPercentage, daysStaked, stakedAtSeconds);
@@ -252,9 +349,7 @@ export default function StakePanel() {
                   <div className="relative">
                     <Input
                       type="number"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder="0.00"
+                      placeholder={`0.00 (MAX: ${formattedBalance})`}
                       className="pr-24"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
