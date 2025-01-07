@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ethers, formatEther } from 'ethers';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   Card,
   CardContent,
@@ -207,12 +209,20 @@ export default function StakePanel() {
     const rewardRate = REWARD_RATES[lockPeriod.toString() as unknown as keyof typeof REWARD_RATES] || 0;
     const apy = (Number(rewardRate) / 1000) * 100;
     const stakedAtSeconds = Number(stakedAt);
-    const currentTime = Date.now() / 1000;
-    const daysStaked = (currentTime - stakedAtSeconds) / 86400;
-    // console.log('daysStaked: ', daysStaked);
+    const endTime = stakedAtSeconds + Number(lockPeriod);
+    const daysStaked = (endTime - stakedAtSeconds) / 86400;
+    
     const dailyRate = apy / 365;
     const earningsPercentage = dailyRate * daysStaked;
-    // console.log(earningsPercentage, daysStaked, stakedAtSeconds);
+
+    console.log('Amount:', amount);
+    console.log('Lock Period:', lockPeriod);
+    console.log('Staked At:', stakedAt);
+    console.log('Reward Rate:', rewardRate);
+    console.log('APY:', apy);
+    console.log('Days Staked:', daysStaked);
+    console.log('Earnings Percentage:', earningsPercentage);
+
     return earningsPercentage;
   };
 
@@ -234,10 +244,17 @@ export default function StakePanel() {
       });
 
       await tx.wait();
-      // Refresh balance after successful stake
+      // Refresh balance and positions after successful stake
       const newBalance = await provider.getBalance(address);
       setNativeBalance(newBalance);
       
+      // 重新获取用户的质押位置
+      const userPositions = await contract.getUserPositions(address);
+      setPositions(userPositions);
+
+      // 显示成功提示
+      toast.success("Stake Successful! Your stake was successful.");
+
       // Reset input after successful stake
       setInputValue('');
 
@@ -289,14 +306,20 @@ export default function StakePanel() {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
 
+      setIsPending(true);
       try {
         const tx = await contract.unstake(positionId);
         await tx.wait();
         // 领取后刷新质押状态
         const userPositions = await contract.getUserPositions(address);
         setPositions(userPositions);
+        toast.success("Claim Successful! Your claim was successful.");
+
       } catch (error) {
         console.error('Error claiming reward:', error);
+        toast.error("Claim Failed! Failed to claim rewards. Please try again.");
+      } finally {
+        setIsPending(false);
       }
     }
   };
@@ -314,169 +337,172 @@ export default function StakePanel() {
   };
 
   return (
-    <div className="container p-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Staking History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="staking">Staking</TabsTrigger>
-                <TabsTrigger value="claimed">Claimed</TabsTrigger>
-              </TabsList>
-              <TabsContent value={activeTab} className="space-y-6">
-                <div className="space-y-4">
-                  {filteredPositions.length === 0 ? (
-                    <div className="text-center text-gray-500">No staking history found.</div>
-                  ) : (
-                    filteredPositions.map((position, index) => {
-                      const isExpired = Date.now() / 1000 > Number(position.stakedAt) + Number(position.lockPeriod);
-                      const currentEarnings = calculateCurrentEarnings(position.amount, position.lockPeriod, position.stakedAt);
+    <>
+        <div className="container p-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Staking History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-6">
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="staking">Staking</TabsTrigger>
+                    <TabsTrigger value="claimed">Claimed</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value={activeTab} className="space-y-6">
+                    <div className="space-y-4">
+                      {filteredPositions.length === 0 ? (
+                        <div className="text-center text-gray-500">No staking history found.</div>
+                      ) : (
+                        filteredPositions.map((position, index) => {
+                          const isExpired = Date.now() / 1000 > Number(position.stakedAt) + Number(position.lockPeriod);
+                          const currentEarnings = calculateCurrentEarnings(position.amount, position.lockPeriod, position.stakedAt);
 
-                      let statusColor = 'bg-yellow-500';
-                      let statusText = 'Pending';
+                          let statusColor = 'bg-yellow-500';
+                          let statusText = 'Pending';
 
-                      if (position.isUnstaked) {
-                        statusColor = 'bg-gray-500';
-                        statusText = 'Claimed';
-                      } else if (isExpired) {
-                        statusColor = 'bg-green-500';
-                        statusText = 'Ready to Claim';
-                      }
+                          if (position.isUnstaked) {
+                            statusColor = 'bg-gray-500';
+                            statusText = 'Claimed';
+                          } else if (isExpired) {
+                            statusColor = 'bg-green-500';
+                            statusText = 'Ready to Claim';
+                          }
 
-                      return (
-                        <div key={index} className="relative mb-4 p-4 border rounded-lg shadow-sm bg-white flex flex-col md:flex-row justify-between items-center">
-                          <div className="mb-2 md:mb-0">
-                            <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} HSK</div>
-                            <div className="text-sm text-gray-600">Ends In: {new Date((Number(position.stakedAt) + Number(position.lockPeriod)) * 1000).toLocaleDateString()}</div>
-                            <div className="text-sm text-gray-600">Earnings: {currentEarnings.toFixed(2)}%</div>
+                          return (
+                            <div key={index} className="relative mb-4 p-4 border rounded-lg shadow-sm bg-white flex flex-col md:flex-row justify-between items-center">
+                              <div className="mb-2 md:mb-0">
+                                <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} HSK</div>
+                                <div className="text-sm text-gray-600">Ends In: {new Date((Number(position.stakedAt) + Number(position.lockPeriod)) * 1000).toLocaleDateString()}</div>
+                                <div className="text-sm text-gray-600">Earnings: {currentEarnings.toFixed(4)}%</div>
+                              </div>
+                              <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs rounded ${statusColor}`}>
+                                {statusText}
+                              </div>
+                              {isExpired && !position.isUnstaked && (
+                                <Button
+                                  className="absolute bottom-2 right-2 text-white px-4 py-2 rounded"
+                                  onClick={() => handleClaim(position.positionId)}
+                                  disabled={isPending}
+                                >
+                                  {isPending ? 'Processing...' : 'Claim'}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <Tabs defaultValue="stake" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="stake">Stake</TabsTrigger>
+                    <TabsTrigger value="unstake" disabled>Unstake</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="stake" className="space-y-6">
+                    <div>
+                      <div className="mb-2">
+                        <label className="text-sm font-medium">Amount</label>
+                        <div className="flex justify-between items-center">
+                          <div className="text-xs text-muted-foreground">
+                            Available: {ethers.formatEther(nativeBalance)} HSK
                           </div>
-                          <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs rounded ${statusColor}`}>
-                            {statusText}
+                          <div className="text-sm font-semibold text-green-600">
+                            APY: {calculateAPY(lockPeriod)}%
                           </div>
-                          {isExpired && !position.isUnstaked && (
-                            <Button
-                              className="absolute bottom-2 right-2 text-white px-4 py-2 rounded hover:bg-blue-600"
-                              onClick={() => handleClaim(position.positionId)}
-                            >
-                              Claim
-                            </Button>
-                          )}
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <Tabs defaultValue="stake" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="stake">Stake</TabsTrigger>
-                <TabsTrigger value="unstake" disabled>Unstake</TabsTrigger>
-              </TabsList>
-              <TabsContent value="stake" className="space-y-6">
-                <div>
-                  <div className="mb-2">
-                    <label className="text-sm font-medium">Amount</label>
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs text-muted-foreground">
-                        Available: {ethers.formatEther(nativeBalance)} HSK
                       </div>
-                      <div className="text-sm font-semibold text-green-600">
-                        APY: {calculateAPY(lockPeriod)}%
+                      <div className="flex justify-between mb-2">
+                        {[25, 50, 75, 100].map((percent) => (
+                          <Button
+                            key={percent}
+                            onClick={() => {
+                              const maxAmount = Number(formatEther(nativeBalance));
+                              const gasBuffer = 0.01;
+                              const availableAmount = Math.max(0, maxAmount - gasBuffer);
+                              const amount = (availableAmount * percent) / 100;
+                              setInputValue(amount.toFixed(18).replace(/\.?0+$/, ''));
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                          >
+                            {percent}%
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          placeholder={`0.00 (MAX: ${formattedBalance})`}
+                          className="pr-24"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
+                          <button 
+                            onClick={handleMaxClick}
+                            className="text-xs"
+                          >
+                            MAX
+                          </button>
+                          <span className="text-sm text-muted-foreground">HSK</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    {[25, 50, 75, 100].map((percent) => (
-                      <Button
-                        key={percent}
-                        onClick={() => {
-                          const maxAmount = Number(formatEther(nativeBalance));
-                          const gasBuffer = 0.01;
-                          const availableAmount = Math.max(0, maxAmount - gasBuffer);
-                          const amount = (availableAmount * percent) / 100;
-                          setInputValue(amount.toFixed(18).replace(/\.?0+$/, ''));
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        {percent}%
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder={`0.00 (MAX: ${formattedBalance})`}
-                      className="pr-24"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
-                      <button 
-                        onClick={handleMaxClick}
-                        className="text-xs"
-                      >
-                        MAX
-                      </button>
-                      <span className="text-sm text-muted-foreground">HSK</span>
+
+                    <div>
+                      <div className="mb-2">
+                        <label className="text-sm font-medium">Duration</label>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2">
+                        {Object.keys(DURATION_MAP).map((duration) => (
+                          <Button
+                            key={duration}
+                            variant="outline"
+                            size="sm"
+                            className={`w-full ${lockPeriod === DURATION_MAP[duration as keyof typeof DURATION_MAP] ? 'bg-primary text-primary-foreground' : ''}`}
+                            onClick={() => handleDurationSelect(duration as keyof typeof DURATION_MAP)}
+                          >
+                            {duration}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div>
-                  <div className="mb-2">
-                    <label className="text-sm font-medium">Duration</label>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Object.keys(DURATION_MAP).map((duration) => (
-                      <Button
-                        key={duration}
-                        variant="outline"
-                        size="sm"
-                        className={`w-full ${lockPeriod === DURATION_MAP[duration as keyof typeof DURATION_MAP] ? 'bg-primary text-primary-foreground' : ''}`}
-                        onClick={() => handleDurationSelect(duration as keyof typeof DURATION_MAP)}
-                      >
-                        {duration}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                    {(error || getErrorMessage()) && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>
+                          {error || getErrorMessage()}
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-                {(error || getErrorMessage()) && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {error || getErrorMessage()}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Button 
-                  className="w-full" 
-                  size="lg" 
-                  onClick={handleStakeClick}
-                  disabled={isButtonDisabled}
-                  title={Number(inputValue) < 100 ? 'Minimum stake amount is 100' : ''}
-                >
-                  {isPending ? 'Processing...' : 'Stake'}
-                </Button>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                    <Button 
+                      className="w-full" 
+                      size="lg" 
+                      onClick={handleStakeClick}
+                      disabled={isButtonDisabled || isPending}
+                      title={Number(inputValue) < 100 ? 'Minimum stake amount is 100' : ''}
+                    >
+                      {isPending ? 'Processing...' : 'Stake'}
+                    </Button>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+    </>
   );
 }

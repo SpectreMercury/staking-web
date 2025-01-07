@@ -1,4 +1,5 @@
 "use client"
+import { ToastContainer } from "react-toastify";
 // app/layout.tsx
 // import type { Metadata } from "next";
 import "./globals.css";
@@ -19,7 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div className="flex w-full">
-          <ContextProvider>{children}</ContextProvider>
+          <ContextProvider>
+            {children}
+          </ContextProvider>
+          <ToastContainer />
         </div>
       </body>
     </html>

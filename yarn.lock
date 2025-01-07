@@ -1133,7 +1133,7 @@
 
 "@radix-ui/react-toast@^1.2.4":
   version "1.2.4"
-  resolved "https://registry.npmjs.org/@radix-ui/react-toast/-/react-toast-1.2.4.tgz"
+  resolved "https://registry.npmjs.org/@radix-ui/react-toast/-/react-toast-1.2.4.tgz#52fe0e5f169209b7fa300673491a6bedde940279"
   integrity sha512-Sch9idFJHJTMH9YNpxxESqABcAFweJG4tKv+0zo0m5XBvUSL8FM5xKcJLFLXononpePs8IclyX1KieL5SDUNgA==
   dependencies:
     "@radix-ui/primitive" "1.1.1"
@@ -4877,6 +4877,13 @@ react-style-singleton@^2.2.1, react-style-singleton@^2.2.2:
   dependencies:
     get-nonce "^1.0.0"
     tslib "^2.0.0"
+
+react-toastify@^11.0.2:
+  version "11.0.2"
+  resolved "https://registry.npmjs.org/react-toastify/-/react-toastify-11.0.2.tgz#5c5ae745f3c7240015a8746217595cd26701fdc3"
+  integrity sha512-GjHuGaiXMvbls3ywqv8XdWONwrcO4DXCJIY1zVLkHU73gEElKvTTXNI5Vom3s/k/M8hnkrfsqgBSX3OwmlonbA==
+  dependencies:
+    clsx "^2.1.1"
 
 react-transition-state@^1.1.4:
   version "1.1.5"

@@ -53,6 +53,17 @@ export default function Dashboard() {
     };
 
     fetchData();
+
+    // 监听质押成功事件
+    const handleStakeSuccess = () => {
+      fetchData();
+    };
+
+    window.addEventListener('stakeSuccess', handleStakeSuccess);
+
+    return () => {
+      window.removeEventListener('stakeSuccess', handleStakeSuccess);
+    };
   }, [address]);
 
   const renderCard = (title: string, value: string | number, description: string, icon: React.ReactNode) => {
