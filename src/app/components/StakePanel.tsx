@@ -25,6 +25,7 @@ import { ConnectKitButton } from "connectkit";
 import { Wallet } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { useRefresh } from '@/context/RefreshContext';
 
 const DURATION_MAP = {
   '1Min': BigInt(60),
@@ -59,6 +60,7 @@ export default function StakePanel() {
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(true);
+  const { triggerRefresh } = useRefresh();  
 
 
   useEffect(() => {
@@ -214,15 +216,6 @@ export default function StakePanel() {
     
     const dailyRate = apy / 365;
     const earningsPercentage = dailyRate * daysStaked;
-
-    console.log('Amount:', amount);
-    console.log('Lock Period:', lockPeriod);
-    console.log('Staked At:', stakedAt);
-    console.log('Reward Rate:', rewardRate);
-    console.log('APY:', apy);
-    console.log('Days Staked:', daysStaked);
-    console.log('Earnings Percentage:', earningsPercentage);
-
     return earningsPercentage;
   };
 
@@ -254,7 +247,7 @@ export default function StakePanel() {
 
       // 显示成功提示
       toast.success("Stake Successful! Your stake was successful.");
-
+      triggerRefresh();
       // Reset input after successful stake
       setInputValue('');
 

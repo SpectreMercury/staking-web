@@ -18,10 +18,13 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { STAKING_CONTRACT_ADDRESS, stakingABI } from '@/abi/stakeAbi';
 import { Progress } from "@/components/ui/progress";
+import { useRefresh } from "@/context/RefreshContext";
 
 export default function Home() {
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
+  const { refresh } = useRefresh();
+
   
   useEffect(() => {
     const fetchStakingProgress = async () => {
@@ -31,14 +34,13 @@ export default function Home() {
         const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
 
         const stakingProgress = await contract.getStakingProgress();
-        // console.log(stakingProgress);
         setTotalStaked(stakingProgress.total);
         setCurrentStaked(stakingProgress.current);
       }
     };
 
     fetchStakingProgress();
-  }, []);
+  }, [refresh]);
   
 
   return (

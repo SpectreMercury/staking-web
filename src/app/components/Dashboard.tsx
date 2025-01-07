@@ -14,6 +14,7 @@ import { Wallet, Trophy } from "lucide-react";
 import { stakingABI, STAKING_CONTRACT_ADDRESS } from '@/abi/stakeAbi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccount } from 'wagmi';
+import { useRefresh } from '@/context/RefreshContext';
 
 export default function Dashboard() {
   const [totalStakes, setTotalStakes] = useState<number>(0);
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [hskPrice, setHskPrice] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const { address } = useAccount();
+  const { refresh } = useRefresh();
 
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('stakeSuccess', handleStakeSuccess);
     };
-  }, [address]);
+  }, [address, refresh]);
 
   const renderCard = (title: string, value: string | number, description: string, icon: React.ReactNode) => {
     if (isLoading) {

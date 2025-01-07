@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 // import type { Metadata } from "next";
 import "./globals.css";
 import ContextProvider from "@/context";
+import { RefreshProvider } from "@/context/RefreshContext";
 
 // export const metadata: Metadata = {
 //   title: "HashKey Staking Protocol",
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body>
         <div className="flex w-full">
           <ContextProvider>
-            {children}
+            <RefreshProvider>
+              {children}
+            </RefreshProvider>
           </ContextProvider>
           <ToastContainer />
         </div>
