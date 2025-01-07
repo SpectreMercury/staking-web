@@ -19,20 +19,21 @@ import { Progress } from "@/components/ui/progress";
 import { useAccount, useBalance } from 'wagmi'
 import { formatUnits } from 'viem'
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConnectKitButton } from "connectkit";
+import { Wallet } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 const DURATION_MAP = {
-  // '1M': BigInt(2592000),
-  // '3M': BigInt(7889400),
+  '1Min': BigInt(60),
   '6M': BigInt(15778800),
   '1Y': BigInt(31557600),
 } as const;
 
 const REWARD_RATES = {
-  // 60: 10,
-  // 2592000: 100,
-  // 7889400: 320,
-  15778800: 660,
-  31557600: 1420,
+  60: 500,
+  15778800: 700,
+  31557600: 1500,
 };
 
 // const WHITELIST_BONUS = 1.05;
@@ -109,6 +110,24 @@ export default function StakePanel() {
 
     fetchPositions();
   }, [address]);
+
+  if (!address) {
+    return (
+      <div className="container p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12">
+              <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
+              <div className="text-lg font-semibold text-muted-foreground mb-4">
+                Connect your wallet to start staking
+              </div>
+              <ConnectKitButton />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -244,11 +263,17 @@ export default function StakePanel() {
   const isButtonDisabled = 
     !inputValue || 
     isPending ||
-    Number(inputValue) <= 0 ||
+    Number(inputValue) < 100 ||
     ethers.parseEther(inputValue) > nativeBalance ||
     (currentStaked + ethers.parseEther(inputValue)) > totalStaked;
 
   const getErrorMessage = () => {
+    if (!inputValue) {
+      return null;
+    }
+    if (Number(inputValue) < 100) {
+      return 'Minimum stake amount is 100';
+    }
     if (ethers.parseEther(inputValue || '0') > nativeBalance) {
       return 'Insufficient balance';
     }
@@ -282,6 +307,11 @@ export default function StakePanel() {
     if (activeTab === 'claimed') return position.isUnstaked;
     return false;
   });
+
+  const calculateAPY = (duration: bigint) => {
+    const rate = REWARD_RATES[duration.toString() as unknown as keyof typeof REWARD_RATES] || 0;
+    return (Number(rate) / 1000) * 100;
+  };
 
   return (
     <div className="container p-6">
@@ -356,8 +386,13 @@ export default function StakePanel() {
                 <div>
                   <div className="mb-2">
                     <label className="text-sm font-medium">Amount</label>
-                    <div className="text-xs text-muted-foreground">
-                      Available: {ethers.formatEther(nativeBalance)} HSK
+                    <div className="flex justify-between items-center">
+                      <div className="text-xs text-muted-foreground">
+                        Available: {ethers.formatEther(nativeBalance)} HSK
+                      </div>
+                      <div className="text-sm font-semibold text-green-600">
+                        APY: {calculateAPY(lockPeriod)}%
+                      </div>
                     </div>
                   </div>
                   <div className="flex justify-between mb-2">
@@ -366,7 +401,6 @@ export default function StakePanel() {
                         key={percent}
                         onClick={() => {
                           const maxAmount = Number(formatEther(nativeBalance));
-                          // 减去 gas 费用缓冲
                           const gasBuffer = 0.01;
                           const availableAmount = Math.max(0, maxAmount - gasBuffer);
                           const amount = (availableAmount * percent) / 100;
@@ -420,9 +454,13 @@ export default function StakePanel() {
                 </div>
 
                 {(error || getErrorMessage()) && (
-                  <div className="text-sm text-red-500">
-                    {error || getErrorMessage()}
-                  </div>
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {error || getErrorMessage()}
+                    </AlertDescription>
+                  </Alert>
                 )}
 
                 <Button 
@@ -430,6 +468,7 @@ export default function StakePanel() {
                   size="lg" 
                   onClick={handleStakeClick}
                   disabled={isButtonDisabled}
+                  title={Number(inputValue) < 100 ? 'Minimum stake amount is 100' : ''}
                 >
                   {isPending ? 'Processing...' : 'Stake'}
                 </Button>

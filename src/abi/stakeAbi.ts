@@ -1,6 +1,6 @@
 import { type Abi } from 'viem'
 
-export const STAKING_CONTRACT_ADDRESS = "0x354cC80C0eA01C4fD062913a3EE0076Ba2d65783" as const;
+export const STAKING_CONTRACT_ADDRESS = "0x06C369bbfC1f829aA4B279DcE2BaCDe7F426C333" as const;
 
 export const stakingABI = [
   {

@@ -25,9 +25,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!address) {
-        return;
-      }
       try {
         // 获取 HSK 价格
         const response = await fetch('/api/hsk-price');
@@ -44,7 +41,7 @@ export default function Dashboard() {
           setTotalStaked(total);
 
           // 使用 nextPositionId 获取总质押笔数
-          const userPositions = await contract.getUserPositions(address);
+          const userPositions = address ? await contract.getUserPositions(address) : [];
           setTotalStakes(userPositions.length);
         }
       } catch (error) {
