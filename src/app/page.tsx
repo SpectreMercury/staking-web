@@ -34,8 +34,9 @@ export default function Home() {
         const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
 
         const stakingProgress = await contract.getStakingProgress();
+        const totalStaked = await contract.getHistoricalTotalStaked();
         setTotalStaked(stakingProgress.total);
-        setCurrentStaked(stakingProgress.current);
+        setCurrentStaked(totalStaked);
       }
     };
 

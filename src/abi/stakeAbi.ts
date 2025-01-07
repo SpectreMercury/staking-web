@@ -1,6 +1,6 @@
 import { type Abi } from 'viem'
 
-export const STAKING_CONTRACT_ADDRESS = "0x06C369bbfC1f829aA4B279DcE2BaCDe7F426C333" as const;
+export const STAKING_CONTRACT_ADDRESS = "0xd41CEeEd9118B6C55D951E364d514D00413FD497" as const;
 
 export const stakingABI = [
   {
@@ -1305,7 +1305,20 @@ export const stakingABI = [
   {
     "stateMutability": "payable",
     "type": "receive"
-  }
+  },
+  {
+    "inputs": [],
+    "name": "getHistoricalTotalStaked",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
 ] as const satisfies Abi;
 
 // 类型定义保持不变

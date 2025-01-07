@@ -39,7 +39,7 @@ export default function Dashboard() {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
 
-          const total = await contract.totalStaked();
+          const total = await contract.getHistoricalTotalStaked();
           setTotalStaked(total);
 
           // 使用 nextPositionId 获取总质押笔数
@@ -107,7 +107,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-3">
         {renderCard(
           "Total Stake TVL",
-          (parseFloat(ethers.formatEther(totalStaked)) * hskPrice).toFixed(2),
+          `$ ${(parseFloat(ethers.formatEther(totalStaked)) * hskPrice).toFixed(2)}`,
           "Total Value Locked",
           <Wallet className="h-4 w-4 text-muted-foreground" />
         )}
