@@ -26,7 +26,7 @@ export default function RootLayout({
               {children}
             </RefreshProvider>
           </ContextProvider>
-          <ToastContainer />
+          <ToastContainer theme="dark"/>
         </div>
       </body>
     </html>
