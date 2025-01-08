@@ -30,8 +30,7 @@ export default function Home() {
     const fetchStakingProgress = async () => {
       if (window.ethereum) {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
 
         const stakingProgress = await contract.getStakingProgress();
         const totalStaked = await contract.getHistoricalTotalStaked();
