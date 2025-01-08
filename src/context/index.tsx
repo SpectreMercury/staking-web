@@ -46,29 +46,23 @@ export const hashKeyChainMainnet = {
   explorer: 'https://explorer.hsk.xyz',
 }
 
-const config = createConfig(
-  getDefaultConfig({
-    // Your dApps chains
-    chains: [hashKeyChainTestnet],
-    transports: {
-      // RPC URL for each chain
-      [hashKeyChainMainnet.id]: http(
-        hashKeyChainMainnet.rpcUrls.default.http[0]
-      ),
-      [hashKeyChainTestnet.id]: http(
-        hashKeyChainTestnet.rpcUrls.default.http[0]
-      ),
-    },
-    // Required API Keys
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+const connectKitConfig = getDefaultConfig({
+  walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+  appName: "HashKey Staking",
+  appDescription: "HashKey staking",
+  chains: [hashKeyChainTestnet],
+})
 
-    // Required App Info
-    appName: "HashKye Staking",
-
-    // Optional App Info
-    appDescription: "HashKey staking",
-  }),
-);
+const config = createConfig({
+  chains: connectKitConfig.chains,
+  connectors: connectKitConfig.connectors,
+  transports: {
+    [hashKeyChainMainnet.id]: http(hashKeyChainMainnet.rpcUrls.default.http[0]),
+    [hashKeyChainTestnet.id]: http(hashKeyChainTestnet.rpcUrls.default.http[0])
+  },
+  ssr: true,
+  syncConnectedChain: true
+})
 
 
 

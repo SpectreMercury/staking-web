@@ -24,7 +24,6 @@ export default function Home() {
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
   const { refresh } = useRefresh();
-
   
   useEffect(() => {
     const fetchStakingProgress = async () => {

@@ -1,7 +1,8 @@
 "use client"
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ConnectKitButton } from "connectkit";
+import { useAccount } from 'wagmi';
 
 
 
@@ -18,6 +19,12 @@ import { ConnectKitButton } from "connectkit";
 // };
 
 export default function Header() {
+  const { address } = useAccount();
+
+  // 添加调试日志
+  useEffect(() => {
+    console.log('Current address:', address);
+  }, [address]);
 
   // const getBalance = async (address: string) => {
   //   if (window.ethereum) {

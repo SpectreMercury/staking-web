@@ -63,6 +63,8 @@ export default function StakePanel() {
   const { triggerRefresh } = useRefresh();  
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
+  const [stakeEndTime, setStakeEndTime] = useState<bigint>(BigInt(0));
+  const [isStakingEnded, setIsStakingEnded] = useState(false);
 
 
   useEffect(() => {
@@ -101,6 +103,19 @@ export default function StakePanel() {
           
           setNativeBalance(balance);
 
+          // 获取质押截止时间
+          const endTime = await publicClient.readContract({
+            address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+            abi: stakingABI,
+            functionName: 'stakeEndTime',
+          }) as bigint;
+          
+          setStakeEndTime(endTime);
+          
+          // 检查是否已经结束
+          const currentTime = BigInt(Math.floor(Date.now() / 1000));
+          setIsStakingEnded(currentTime >= endTime);
+
         } catch (error) {
           console.error("Error initializing:", error);
         } finally {
@@ -112,22 +127,26 @@ export default function StakePanel() {
     }, [address, publicClient]);
 
   useEffect(() => {
-    const fetchPositions = async () => {
-      if (!address) {
-        return;
-      }
-      if (window.ethereum) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
+    if (!address || !publicClient) return;
 
-        // 获取用户的质押位置
-        const userPositions = await contract.getUserPositions(address);
+    const fetchPositions = async () => {
+      try {
+        // 获取用户质押位置
+        const userPositions = await publicClient.readContract({
+          address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+          abi: stakingABI,
+          functionName: 'getUserPositions',
+          args: [address]
+        }) as Position[];
+        
         setPositions(userPositions);
+      } catch (error) {
+        console.error('Error fetching positions:', error);
       }
     };
 
     fetchPositions();
-  }, [address]);
+  }, [address, publicClient]);
 
   if (!address) {
     return (
@@ -314,7 +333,8 @@ const handleStakeClick = async () => {
     isPending ||
     Number(inputValue) < 100 ||
     ethers.parseEther(inputValue) > nativeBalance ||
-    (currentStaked + ethers.parseEther(inputValue)) > totalStaked;
+    (currentStaked + ethers.parseEther(inputValue)) > totalStaked ||
+    isStakingEnded;
 
   const getErrorMessage = () => {
     if (!inputValue) {
@@ -541,16 +561,25 @@ const handleStakeClick = async () => {
                       className="w-full" 
                       size="lg" 
                       onClick={handleStakeClick}
-                      disabled={isButtonDisabled || isPending}
-                      title={Number(inputValue) < 100 ? 'Minimum stake amount is 100' : ''}
+                      disabled={isButtonDisabled}
+                      title={
+                        isStakingEnded ? 'Staking has ended' :
+                        Number(inputValue) < 100 ? 'Minimum stake amount is 100' : 
+                        ''
+                      }
                     >
-                      {isPending ? 'Processing...' : 'Stake'}
+                      {isPending ? 'Processing...' : 
+                       isStakingEnded ? 'Staking Ended' : 
+                       'Stake'}
                     </Button>
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
           </div>
+        </div>
+        <div className="text-sm text-gray-500 mb-4">
+          Staking End Time: {new Date(Number(stakeEndTime) * 1000).toLocaleString()}
         </div>
     </>
   );
