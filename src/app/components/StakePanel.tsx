@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/tabs";
 import { stakingABI, STAKING_CONTRACT_ADDRESS, Position } from '@/abi/stakeAbi';
 import { Progress } from "@/components/ui/progress";
-import { useAccount, useBalance } from 'wagmi'
-import { formatUnits } from 'viem'
+import { useAccount, useBalance, usePublicClient, useWalletClient } from 'wagmi'
+import { formatUnits, parseEther } from 'viem'
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConnectKitButton } from "connectkit";
 import { Wallet } from "lucide-react";
@@ -61,6 +61,9 @@ export default function StakePanel() {
   const [currentStaked, setCurrentStaked] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(true);
   const { triggerRefresh } = useRefresh();  
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+
 
 
   useEffect(() => {
@@ -219,44 +222,61 @@ export default function StakePanel() {
     return earningsPercentage;
   };
 
-  const handleStakeClick = async () => {
-    if (!inputValue || !address || nativeBalance === undefined) return;
+const handleStakeClick = async () => {
+    if (!inputValue || !address || !publicClient) return;
     
     setIsPending(true);
     setError(null);
     try {
-      const amount = ethers.parseEther(inputValue);
+      // 使用 viem 的工具转换金额
+      const amount = parseEther(inputValue)
 
-      const provider = new ethers.BrowserProvider(window.ethereum!);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
-
-      const tx = await contract.stake(lockPeriod, {
+      const { request } = await publicClient.simulateContract({
+        address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+        abi: stakingABI,
+        functionName: 'stake',
+        args: [lockPeriod],
         value: amount,
-        gasLimit: 500000,
-      });
+        account: address,
+      })
 
-      await tx.wait();
-      // Refresh balance and positions after successful stake
-      const newBalance = await provider.getBalance(address);
-      setNativeBalance(newBalance);
+      const hash = await walletClient?.writeContract(request)
+
+      if (!hash) {
+        throw new Error('Transaction failed')
+      }
+
+      await publicClient.waitForTransactionReceipt({ 
+        hash 
+      })
+
+      // 更新余额
+      const newBalance = await publicClient.getBalance({ 
+        address 
+      })
+      setNativeBalance(newBalance)
+
+      // 更新质押位置
+      const positions = await publicClient.readContract({
+        address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+        abi: stakingABI,
+        functionName: 'getUserPositions',
+        args: [address]
+      }) as Position[]
       
-      // 重新获取用户的质押位置
-      const userPositions = await contract.getUserPositions(address);
-      setPositions(userPositions);
+      setPositions(positions)
 
-      // 显示成功提示
-      toast.success("Stake Successful! Your stake was successful.");
-      triggerRefresh();
-      // Reset input after successful stake
-      setInputValue('');
+      toast.success("Stake Successful!")
+      triggerRefresh()
+      setInputValue('')
 
-    } catch  {
-      setError('Failed to stake tokens. Please try again.');
+    } catch (error) {
+      console.error('Staking error:', error)
+      setError('Failed to stake tokens. Please try again.')
     } finally {
-      setIsPending(false);
+      setIsPending(false)
     }
-  };
+}
 
   const handleMaxClick = () => {
     const gasBuffer = ethers.parseEther('0.01');
