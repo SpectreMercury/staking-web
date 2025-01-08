@@ -65,40 +65,51 @@ export default function StakePanel() {
   const publicClient = usePublicClient();
 
 
-
   useEffect(() => {
-    if (!address) {
-      return;
-    }
-    const init = async () => {
-      try {
-        setIsLoading(true);
-        if (window.ethereum) {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, provider);
+      if (!address || !publicClient) {
+        return;
+      }
+      
+      const init = async () => {
+        try {
+          setIsLoading(true);
+          console.log('address:', address);
+          // 读取质押进度数据
+          const [total, current ] = await publicClient.readContract({
+            address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+            abi: stakingABI,
+            functionName: 'getStakingProgress',
+          }) as readonly [bigint, bigint, bigint, bigint];
           
-          // 获取质押进度
-          const stakingProgress = await contract.getStakingProgress();
-          setTotalStaked(stakingProgress.total);
-          setCurrentStaked(stakingProgress.current);
+          setTotalStaked(total);
+          setCurrentStaked(current);
 
           // 获取白名单状态
-          const whitelisted = await contract.whitelisted(address);
+          const whitelisted = await publicClient.readContract({
+            address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+            abi: stakingABI,
+            functionName: 'whitelisted',
+            args: [address],
+          }) as boolean;
+          
           setIsWhitelisted(whitelisted);
 
-          // 获取用户的原生余额
-          const userBalance = await provider.getBalance(address);
-          setNativeBalance(userBalance);
-        }
-      } catch (error) {
-        console.error("Error initializing:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          // 获取用户原生余额
+          const balance = await publicClient.getBalance({
+            address,
+          });
+          
+          setNativeBalance(balance);
 
-    init();
-  }, [address]);
+        } catch (error) {
+          console.error("Error initializing:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      init();
+    }, [address, publicClient]);
 
   useEffect(() => {
     const fetchPositions = async () => {
