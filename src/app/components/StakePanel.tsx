@@ -212,14 +212,22 @@ export default function StakePanel() {
 
   const calculateCurrentEarnings = (amount: bigint, lockPeriod: bigint, stakedAt: bigint): number => {
     const rewardRate = REWARD_RATES[lockPeriod.toString() as unknown as keyof typeof REWARD_RATES] || 0;
-    const apy = (Number(rewardRate) / 1000) * 100;
+    const apy = (Number(rewardRate) / 1000) * 100; // 年化收益率
     const stakedAtSeconds = Number(stakedAt);
+    const currentTime = Math.floor(Date.now() / 1000);
     const endTime = stakedAtSeconds + Number(lockPeriod);
-    const daysStaked = (endTime - stakedAtSeconds) / 86400;
     
-    const dailyRate = apy / 365;
-    const earningsPercentage = dailyRate * daysStaked;
-    return earningsPercentage;
+    // 如果已经结束，使用完整的锁定期计算
+    if (currentTime >= endTime) {
+      const totalDays = Number(lockPeriod) / 86400; // 总天数
+      const totalEarnings = (apy / 365) * totalDays;
+      return Number(totalEarnings.toFixed(4));
+    }
+    
+    // 如果还在进行中，按T+1计算
+    const daysElapsed = Math.floor((currentTime - stakedAtSeconds) / 86400); // 向下取整，实现T+1
+    const actualEarnings = (apy / 365) * daysElapsed;
+    return Number(actualEarnings.toFixed(4));
   };
 
 const handleStakeClick = async () => {
@@ -314,28 +322,45 @@ const handleStakeClick = async () => {
   };
 
   const handleClaim = async (positionId: bigint) => {
-    if (window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingABI, signer);
+    if (!address || !publicClient || !walletClient) return;
 
-      setIsPending(true);
-      try {
-        const tx = await contract.unstake(positionId);
-        await tx.wait();
-        // 领取后刷新质押状态
-        const userPositions = await contract.getUserPositions(address);
-        setPositions(userPositions);
-        toast.success("Claim Successful! Your claim was successful.");
+    setIsPending(true);
+    try {
+      // 模拟合约调用
+      const { request } = await publicClient.simulateContract({
+        address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+        abi: stakingABI,
+        functionName: 'unstake',
+        args: [positionId],
+        account: address,
+      })
 
-      } catch (error) {
-        console.error('Error claiming reward:', error);
-        toast.error("Claim Failed! Failed to claim rewards. Please try again.");
-      } finally {
-        setIsPending(false);
-      }
+      // 发送交易
+      const hash = await walletClient.writeContract(request)
+
+      // 等待交易确认
+      await publicClient.waitForTransactionReceipt({ hash })
+
+      // 更新质押位置
+      const positions = await publicClient.readContract({
+        address: STAKING_CONTRACT_ADDRESS as `0x${string}`,
+        abi: stakingABI,
+        functionName: 'getUserPositions',
+        args: [address]
+      }) as Position[]
+      
+      setPositions(positions)
+
+      toast.success("Claim Successful!")
+      triggerRefresh()
+
+    } catch (error) {
+      console.error('Claim error:', error)
+      toast.error("Failed to claim rewards. Please try again.")
+    } finally {
+      setIsPending(false)
     }
-  };
+  }
 
   const filteredPositions = positions.filter(position => {
     if (activeTab === 'all') return true;
@@ -389,7 +414,7 @@ const handleStakeClick = async () => {
                               <div className="mb-2 md:mb-0">
                                 <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} HSK</div>
                                 <div className="text-sm text-gray-600">Ends In: {new Date((Number(position.stakedAt) + Number(position.lockPeriod)) * 1000).toLocaleDateString()}</div>
-                                <div className="text-sm text-gray-600">Earnings: {currentEarnings.toFixed(4)}%</div>
+                                <div className="text-sm text-gray-600">Earnings: <span className='text-green-500 font-semibold'>{currentEarnings.toFixed(4)}%</span></div>
                               </div>
                               <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs rounded ${statusColor}`}>
                                 {statusText}
