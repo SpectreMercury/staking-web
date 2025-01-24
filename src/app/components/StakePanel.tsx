@@ -35,8 +35,8 @@ const DURATION_MAP = {
 
 const REWARD_RATES = {
   60: 500,
-  15778800: 700,
-  31557600: 1500,
+  15778800: 70,
+  31557600: 150,
 };
 
 // const WHITELIST_BONUS = 1.05;
@@ -137,7 +137,7 @@ export default function StakePanel() {
           abi: stakingABI,
           functionName: 'getUserPositions',
           args: [address]
-        }) as Position[];
+        }) as unknown as Position[];
         
         setPositions(userPositions);
       } catch (error) {
@@ -242,7 +242,7 @@ export default function StakePanel() {
 
   const calculateCurrentEarnings = (amount: bigint, lockPeriod: bigint, stakedAt: bigint): number => {
     const rewardRate = REWARD_RATES[lockPeriod.toString() as unknown as keyof typeof REWARD_RATES] || 0;
-    const apy = (Number(rewardRate) / 1000) * 100; // 年化收益率
+    const apy = Number(rewardRate) / 10; // 修改这里的除数
     const stakedAtSeconds = Number(stakedAt);
     const currentTime = Math.floor(Date.now() / 1000);
     const endTime = stakedAtSeconds + Number(lockPeriod);
@@ -300,7 +300,7 @@ const handleStakeClick = async () => {
         abi: stakingABI,
         functionName: 'getUserPositions',
         args: [address]
-      }) as Position[]
+      }) as unknown as Position[]
       
       setPositions(positions)
 
@@ -378,7 +378,7 @@ const handleStakeClick = async () => {
         abi: stakingABI,
         functionName: 'getUserPositions',
         args: [address]
-      }) as Position[]
+      }) as unknown as Position[]
       
       setPositions(positions)
 
@@ -402,57 +402,62 @@ const handleStakeClick = async () => {
 
   const calculateAPY = (duration: bigint) => {
     const rate = REWARD_RATES[duration.toString() as unknown as keyof typeof REWARD_RATES] || 0;
-    return (Number(rate) / 1000) * 100;
+    return Number(rate) / 10; // 将除数从 1000 改为 10，因为现在的利率已经是基点形式
   };
 
   return (
     <>
-        <div className="container p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Staking History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="staking">Staking</TabsTrigger>
-                    <TabsTrigger value="claimed">Claimed</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value={activeTab} className="space-y-6">
-                    <div className="space-y-4">
-                      {filteredPositions.length === 0 ? (
-                        <div className="text-center text-gray-500">No staking history found.</div>
-                      ) : (
-                        filteredPositions.map((position, index) => {
-                          const isExpired = Date.now() / 1000 > Number(position.stakedAt) + Number(position.lockPeriod);
-                          const currentEarnings = calculateCurrentEarnings(position.amount, position.lockPeriod, position.stakedAt);
+      <div className="container p-4 md:p-6">
+        <div className="mb-6 flex justify-end items-center text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-full">
+            <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+            <span>Staking End Time: {new Date(Number(stakeEndTime) * 1000).toLocaleString()}</span>
+          </div>
+        </div>
 
-                          let statusColor = 'bg-yellow-500';
-                          let statusText = 'Pending';
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Staking History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="staking">Staking</TabsTrigger>
+                  <TabsTrigger value="claimed">Claimed</TabsTrigger>
+                </TabsList>
+                <TabsContent value={activeTab} className="space-y-6">
+                  <div className="space-y-4">
+                    {filteredPositions.length === 0 ? (
+                      <div className="text-center text-gray-500">No staking history found.</div>
+                    ) : (
+                      filteredPositions.map((position, index) => {
+                        const isExpired = Date.now() / 1000 > Number(position.stakedAt) + Number(position.lockPeriod);
+                        const currentEarnings = calculateCurrentEarnings(position.amount, position.lockPeriod, position.stakedAt);
 
-                          if (position.isUnstaked) {
-                            statusColor = 'bg-gray-500';
-                            statusText = 'Claimed';
-                          } else if (isExpired) {
-                            statusColor = 'bg-green-500';
-                            statusText = 'Ready to Claim';
-                          }
+                        let statusColor = 'bg-yellow-500';
+                        let statusText = 'Pending';
 
-                          return (
-                            <div key={index} className="relative mb-4 p-4 border rounded-lg shadow-sm bg-white flex flex-col md:flex-row justify-between items-center">
-                              <div className="mb-2 md:mb-0">
+                        if (position.isUnstaked) {
+                          statusColor = 'bg-gray-500';
+                          statusText = 'Claimed';
+                        } else if (isExpired) {
+                          statusColor = 'bg-green-500';
+                          statusText = 'Ready to Claim';
+                        }
+
+                        return (
+                          <div key={index} className="relative mb-4 p-4 border rounded-lg shadow-sm bg-white flex flex-col gap-4">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                              <div>
                                 <div className="font-semibold text-lg">Amount: {formatEther(position.amount)} HSK</div>
                                 <div className="text-sm text-gray-600">Ends In: {new Date((Number(position.stakedAt) + Number(position.lockPeriod)) * 1000).toLocaleDateString()}</div>
                                 <div className="text-sm text-gray-600">Earnings: <span className='text-green-500 font-semibold'>{currentEarnings.toFixed(4)}%</span></div>
                               </div>
-                              <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs rounded ${statusColor}`}>
-                                {statusText}
-                              </div>
                               {isExpired && !position.isUnstaked && (
                                 <Button
-                                  className="absolute bottom-2 right-2 text-white px-4 py-2 rounded"
+                                  className="mt-4 md:mt-0"
                                   onClick={() => handleClaim(position.positionId)}
                                   disabled={isPending}
                                 >
@@ -460,127 +465,128 @@ const handleStakeClick = async () => {
                                 </Button>
                               )}
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <Tabs defaultValue="stake" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="stake">Stake</TabsTrigger>
-                    <TabsTrigger value="unstake" disabled>Unstake</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="stake" className="space-y-6">
-                    <div>
-                      <div className="mb-2">
-                        <label className="text-sm font-medium">Amount</label>
-                        <div className="flex justify-between items-center">
-                          <div className="text-xs text-muted-foreground">
-                            Available: {ethers.formatEther(nativeBalance)} HSK
+                            <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs rounded ${statusColor}`}>
+                              {statusText}
+                            </div>
                           </div>
-                          <div className="text-sm font-semibold text-green-600">
-                            APY: {calculateAPY(lockPeriod)}%
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between mb-2">
-                        {[25, 50, 75, 100].map((percent) => (
-                          <Button
-                            key={percent}
-                            onClick={() => {
-                              const maxAmount = Number(formatEther(nativeBalance));
-                              const gasBuffer = 0.01;
-                              const availableAmount = Math.max(0, maxAmount - gasBuffer);
-                              const amount = (availableAmount * percent) / 100;
-                              setInputValue(amount.toFixed(18).replace(/\.?0+$/, ''));
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            {percent}%
-                          </Button>
-                        ))}
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          value={inputValue}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          placeholder={`0.00 (MAX: ${formattedBalance})`}
-                          className="pr-24"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
-                          <button 
-                            onClick={handleMaxClick}
-                            className="text-xs"
-                          >
-                            MAX
-                          </button>
-                          <span className="text-sm text-muted-foreground">HSK</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-2">
-                        <label className="text-sm font-medium">Duration</label>
-                      </div>
-                      <div className="grid grid-cols-5 gap-2">
-                        {Object.keys(DURATION_MAP).map((duration) => (
-                          <Button
-                            key={duration}
-                            variant="outline"
-                            size="sm"
-                            className={`w-full ${lockPeriod === DURATION_MAP[duration as keyof typeof DURATION_MAP] ? 'bg-primary text-primary-foreground' : ''}`}
-                            onClick={() => handleDurationSelect(duration as keyof typeof DURATION_MAP)}
-                          >
-                            {duration}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {(error || getErrorMessage()) && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>
-                          {error || getErrorMessage()}
-                        </AlertDescription>
-                      </Alert>
+                        );
+                      })
                     )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
 
-                    <Button 
-                      className="w-full" 
-                      size="lg" 
-                      onClick={handleStakeClick}
-                      disabled={isButtonDisabled}
-                      title={
-                        isStakingEnded ? 'Staking has ended' :
-                        Number(inputValue) < 100 ? 'Minimum stake amount is 100' : 
-                        ''
-                      }
-                    >
-                      {isPending ? 'Processing...' : 
-                       isStakingEnded ? 'Staking Ended' : 
-                       'Stake'}
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="stake" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="stake">Stake</TabsTrigger>
+                  <TabsTrigger value="unstake" disabled>Unstake</TabsTrigger>
+                </TabsList>
+                <TabsContent value="stake" className="space-y-6">
+                  <div>
+                    <div className="mb-2">
+                      <label className="text-sm font-medium">Amount</label>
+                      <div className="flex justify-between items-center">
+                        <div className="text-xs text-muted-foreground">
+                          Available: {ethers.formatEther(nativeBalance)} HSK
+                        </div>
+                        <div className="text-sm font-semibold text-green-600">
+                          APY: {calculateAPY(lockPeriod)}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      {[25, 50, 75, 100].map((percent) => (
+                        <Button
+                          key={percent}
+                          onClick={() => {
+                            const maxAmount = Number(formatEther(nativeBalance));
+                            const gasBuffer = 0.01;
+                            const availableAmount = Math.max(0, maxAmount - gasBuffer);
+                            const amount = (availableAmount * percent) / 100;
+                            setInputValue(amount.toFixed(18).replace(/\.?0+$/, ''));
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {percent}%
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder={`0.00 (MAX: ${formattedBalance})`}
+                        className="pr-24"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
+                        <button 
+                          onClick={handleMaxClick}
+                          className="text-xs"
+                        >
+                          MAX
+                        </button>
+                        <span className="text-sm text-muted-foreground">HSK</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2">
+                      <label className="text-sm font-medium">Duration</label>
+                    </div>
+                    <div className="grid grid-cols-5 gap-2">
+                      {Object.keys(DURATION_MAP).map((duration) => (
+                        <Button
+                          key={duration}
+                          variant="outline"
+                          size="sm"
+                          className={`w-full ${lockPeriod === DURATION_MAP[duration as keyof typeof DURATION_MAP] ? 'bg-primary text-primary-foreground' : ''}`}
+                          onClick={() => handleDurationSelect(duration as keyof typeof DURATION_MAP)}
+                        >
+                          {duration}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(error || getErrorMessage()) && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        {error || getErrorMessage()}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button 
+                    className="w-full" 
+                    size="lg" 
+                    onClick={handleStakeClick}
+                    disabled={isButtonDisabled}
+                    title={
+                      isStakingEnded ? 'Staking has ended' :
+                      Number(inputValue) < 100 ? 'Minimum stake amount is 100' : 
+                      ''
+                    }
+                  >
+                    {isPending ? 'Processing...' : 
+                     isStakingEnded ? 'Staking Ended' : 
+                     'Stake'}
+                  </Button>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
-        <div className="text-sm text-gray-500 mb-4">
-          Staking End Time: {new Date(Number(stakeEndTime) * 1000).toLocaleString()}
-        </div>
+      </div>
     </>
   );
 }

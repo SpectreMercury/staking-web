@@ -101,8 +101,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container p-6">
-      <div className="grid gap-4 md:grid-cols-3">
+    <div className="container p-4 md:p-6">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         {renderCard(
           "Total Stake TVL",
           `$ ${(Number(formatEther(totalStaked)) * hskPrice).toFixed(2)}`,

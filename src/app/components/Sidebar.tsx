@@ -1,17 +1,37 @@
 /* eslint-disable @next/next/no-img-element */
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Menu, X } from "lucide-react";
 
 export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <>
-      <div className="w-64 shrink-0" />
+      {/* Mobile Menu Button */}
+      <button
+        className="fixed top-4 left-4 z-50 md:hidden"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Menu className="h-6 w-6" />
+        )}
+      </button>
+
+      {/* Desktop Sidebar Spacer */}
+      <div className="hidden md:block w-64 shrink-0" />
       
-      <aside className="fixed left-0 top-0 z-30 w-64 border-r min-h-screen bg-background">
+      {/* Sidebar */}
+      <aside className={`
+        fixed left-0 top-0 z-40 w-64 border-r h-full bg-background transition-transform duration-200 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
         <div className="p-6 flex justify-center border-b">
           <img 
             src="https://cdn.jsdelivr.net/gh/HashkeyHSK/Brand-Kit@main/Black%20HashKey%20Group.png" 
@@ -25,6 +45,7 @@ export default function Sidebar() {
               variant="ghost"
               className="w-full justify-start"
               asChild
+              onClick={() => setIsOpen(false)}
             >
               <Link href="/" className="flex items-center">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -34,6 +55,14 @@ export default function Sidebar() {
           </div>
         </nav>
       </aside>
+
+      {/* Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
     </>
   );
 }

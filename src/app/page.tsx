@@ -43,13 +43,13 @@ export default function Home() {
   
 
   return (
-    <div className="flex w-full">
+    <div className="flex w-full min-h-screen">
       <Sidebar />
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-hidden">
         <Header />
-        <div className="container">
+        <div className="container max-w-7xl mx-auto">
           <Dashboard />          
-          <div className="grid gap-4 md:grid-cols-2 p-6">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 p-4 md:p-6">
             <Card>
               <CardHeader>
                 <CardTitle>Stake with Confidence</CardTitle>
